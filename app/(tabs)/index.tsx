@@ -9,24 +9,47 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { Colors } from '@/constants/Colors';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import * as Speech from 'expo-speech';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
 
   const [text, setText] = useState('')
   const [dua, setDua] = useState<any>([])
+  const { saveToStorage } = useLocalStorage()
 
   const convertText = async (text: string, language: string) => {
+    try {
+   
       const genAI = new GoogleGenerativeAI('');
-              const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-              console.log("convertText",text)
-              const prompt = `convert this text ${text} to ${language} language in context of dua and prayers and add Ḍammah Kasrah Fatḥah to translated text and return single option and only arabic no other text in response`;
-              console.log("convertText",prompt)
-              const response = await model.generateContent(prompt);
-              console.log("response.response.text()",response.response.text())
-              setDua([...dua,{id :Math.floor(Math.random() * 10), text: response.response.text()}])
-              // text = response.response.text()
-              // return  response.response.text()
-      }
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `convert this text ${text} to ${language} language in context of dua and prayers and add Ḍammah Kasrah Fatḥah to translated text and return single option and only arabic no other text in response`;
+      const response = await model.generateContent(prompt);
+              console.log("response",response.response.text());
+      setDua([...dua,{id :Math.floor(Math.random() * 10), text: response.response.text()}])
+     await saveToStorage('dua', [...dua,{id :Math.floor(Math.random() * 10), text: response.response.text()}])
+     setText('')
+    } catch (error) {
+      console.log("Error in convertText", error);
+    }
+    }
+    
+    const speakText = (text:any) => {
+      try {
+      console.log("speakText", text);
+      Speech.stop(); // optional: stop any ongoing speech
+      Speech.speak(text, {
+        language: 'ar-SA', // or 'ar-SA' for Arabic
+        pitch: 1.0,
+        rate: 1.0,
+      });
+      // Speech.speak('Hi I am zain ahmed');
+    } catch (error) {
+      console.warn("Speech error:", error);
+    }
+    };
+
   return (
       <SafeAreaView style={{ flex: 1, }}>
       <View style={{ flexDirection:'column',  padding:15, gap:10 }}>
@@ -54,9 +77,16 @@ export default function HomeScreen() {
                {dua.map((_:any, i:number) => {
                  return <View style={{
                   padding:10,
+                  flexDirection:'row',
                   borderWidth:2
                  }}>
-                  <Text>{_.text}</Text>
+                  <Text style={{flex:1}}>{_.text}</Text>
+                  <Ionicons
+                  onPress={()=>speakText(_.text)}
+                          name='play'
+                          size={18}
+                          color={Colors.light.icon}
+                        />
                  </View>
                })}
     </ParallaxScrollView>
